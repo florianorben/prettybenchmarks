@@ -22,6 +22,7 @@ which is convenient for calls within template.
 I didn't feel it was worth to publish a library just for this piece
 of code, hence the snippet. Feel free to reuse as you wish.
 */
+
 package prettybenchmarks
 
 import (
@@ -55,6 +56,15 @@ var renderFloatPrecisionRounders = [10]float64{
 	0.0000000005,
 }
 
+//RenderInteger formats a given integer n according to the provided format
+//Examples of format strings for given n = 12345.6789:
+//    "#,###.##" => "12,345.67"
+//    "#,###." => "12,345"
+//    "#,###" => "12345,678"
+//    "#\u202F###,##" => "12 345,67"
+//    "#.###,###### => 12.345,678900
+//    "" (aka default format) => 12,345.67
+//Author: https://github.com/gorhill, Source: https://gist.github.com/gorhill/5285193
 func RenderFloat(format string, n float64) string {
 	// Special cases:
 	//   NaN = "NaN"
@@ -177,6 +187,15 @@ func RenderFloat(format string, n float64) string {
 	return signStr + intStr + decimalStr + fracStr
 }
 
+//RenderInteger formats a given integer n according to the provided format
+//Examples of format strings for given n = 12345:
+//    "#,###.##" => "12,345.00"
+//    "#,###." => "12,345"
+//    "#,###" => "12345,000"
+//    "#\u202F###,##" => "12 345,00"
+//    "#.###,###### => 12.345,000000
+//    "" (aka default format) => 12,345.00
+//Author: https://github.com/gorhill, Source: https://gist.github.com/gorhill/5285193
 func RenderInteger(format string, n int) string {
 	return RenderFloat(format, float64(n))
 }
