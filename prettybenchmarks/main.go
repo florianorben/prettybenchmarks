@@ -87,6 +87,7 @@ func Main() {
 	bench = newBenchmark(lines)
 
 	table = termtables.CreateTable()
+	table.Style.Alignment = termtables.AlignRight
 	addTableHeader(table)
 	addTableBody(table)
 
@@ -274,17 +275,32 @@ func footer() string {
 }
 
 func addTableHeader(t *termtables.Table) {
+	var lenLongestName int
+	for name := range *bench.results {
+		if tmpLen := len(name); tmpLen > lenLongestName {
+			lenLongestName = tmpLen
+		}
+	}
+
+	// add padding to first col since alignment in header columns does not work
+	// padding of longest name + len("name") + 1 padding right
+	nameCol := make([]byte, 0, lenLongestName+4+1)
+	nameCol = append(nameCol, []byte("Name")...)
+	for i := 0; i < lenLongestName; i++ {
+		nameCol = append(nameCol, byte(32))
+	}
+
 	if bench.info.benchmemUsed {
 		if bench.info.hasFnIterations {
-			t.AddHeaders(bold("Name"), bold("Iterations"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), bold("B/op"), bold("allocations/op"), "")
+			t.AddHeaders(bold(string(nameCol)), bold("Iterations"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), bold("B/op"), bold("allocations/op"))
 		} else {
-			t.AddHeaders(bold("Name"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), bold("B/op"), bold("allocations/op"), "")
+			t.AddHeaders(bold(string(nameCol)), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), bold("B/op"), bold("allocations/op"))
 		}
 	} else {
 		if bench.info.hasFnIterations {
-			t.AddHeaders(bold("Name"), bold("Iterations"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), "")
+			t.AddHeaders(bold(string(nameCol)), bold("Iterations"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"))
 		} else {
-			t.AddHeaders(bold("Name"), bold("Runs"), bold(bench.info.suggestedTiming+"/op"), "")
+			t.AddHeaders(bold(string(nameCol)), bold("Runs"), bold(bench.info.suggestedTiming+"/op"))
 		}
 	}
 }
@@ -359,11 +375,6 @@ func addTableBody(t *termtables.Table) {
 	}
 
 	t.SetAlign(termtables.AlignLeft, 1)
-	t.SetAlign(termtables.AlignRight, 2)
-	t.SetAlign(termtables.AlignRight, 3)
-	t.SetAlign(termtables.AlignRight, 4)
-	t.SetAlign(termtables.AlignRight, 5)
-	t.SetAlign(termtables.AlignRight, 6)
 }
 
 func setTiming() {
