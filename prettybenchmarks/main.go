@@ -16,10 +16,10 @@ import (
 	"github.com/apcera/termtables"
 )
 
-var (
-	byWhitespace = regexp.MustCompile(`\s+`)
-	byRuns       = regexp.MustCompile(`-\d+$`)
-	byIterations = regexp.MustCompile(`(?i:)(Benchmark_?)`)
+const (
+	fmtInt     = "#,###."
+	fmtFloat   = "#,###.###"
+	fmtFloatNS = "#,###."
 )
 
 type (
@@ -48,6 +48,12 @@ type sortByFnIterations []*result
 func (b sortByFnIterations) Len() int           { return len(b) }
 func (b sortByFnIterations) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b sortByFnIterations) Less(i, j int) bool { return b[i].FnIterations < b[j].FnIterations }
+
+var (
+	byWhitespace = regexp.MustCompile(`\s+`)
+	byRuns       = regexp.MustCompile(`-\d+$`)
+	byIterations = regexp.MustCompile(`(?i:)(Benchmark_?)`)
+)
 
 var (
 	lines  [][]byte
@@ -284,6 +290,11 @@ func addTableHeader(t *termtables.Table) {
 }
 
 func addTableBody(t *termtables.Table) {
+	floatFmt := fmtFloat
+	if bench.info.suggestedTiming == "ns" {
+		floatFmt = fmtFloatNS
+	}
+
 	i := len(*bench.results)
 	sorted := make([]string, 0, i)
 	for name := range *bench.results {
@@ -306,11 +317,18 @@ func addTableBody(t *termtables.Table) {
 
 					if fnIterations == "-1" {
 						fnIterations = ""
+					} else {
+						i, err := strconv.Atoi(fnIterations)
+						if err != nil {
+							fnIterations = ""
+						} else {
+							fnIterations = RenderInteger(fmtInt, i)
+						}
 					}
 
-					t.AddRow(name, fnIterations, b.Runs, b.Speed, b.Bps, b.Aps, "⬅")
+					t.AddRow(name, fnIterations, RenderInteger(fmtInt, b.Runs), RenderFloat(floatFmt, b.Speed), RenderInteger(fmtInt, b.Bps), RenderInteger(fmtInt, b.Aps))
 				} else {
-					t.AddRow(name, b.Runs, b.Speed, b.Bps, b.Aps, "⬅")
+					t.AddRow(name, RenderInteger(fmtInt, b.Runs), RenderFloat(floatFmt, b.Speed), RenderInteger(fmtInt, b.Bps), RenderInteger(fmtInt, b.Aps))
 				}
 			} else {
 				if bench.info.hasFnIterations {
@@ -318,11 +336,18 @@ func addTableBody(t *termtables.Table) {
 
 					if fnIterations == "-1" {
 						fnIterations = ""
+					} else {
+						i, err := strconv.Atoi(fnIterations)
+						if err != nil {
+							fnIterations = ""
+						} else {
+							fnIterations = RenderInteger(fmtInt, i)
+						}
 					}
 
-					t.AddRow(name, fnIterations, b.Runs, b.Speed, "⬅")
+					t.AddRow(name, fnIterations, RenderInteger(fmtInt, b.Runs), RenderFloat(floatFmt, b.Speed))
 				} else {
-					t.AddRow(name, b.Runs, b.Speed, "⬅")
+					t.AddRow(name, RenderInteger(fmtInt, b.Runs), RenderFloat(floatFmt, b.Speed))
 				}
 			}
 		}
