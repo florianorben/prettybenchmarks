@@ -1,3 +1,7 @@
+// Copyright 2015 Florian Orben. All rights reserved.
+// Use of this source code is governed under the Apache License, Version 2.0
+// that can be found in the LICENSE file.
+
 // prettybenchmark: format go benchmarks into tables
 //
 // Usage: Pipe your benchmark results into "pb"
