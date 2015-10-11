@@ -2,7 +2,6 @@ package prettybenchmarks
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -50,16 +49,21 @@ func (b sortByFnIterations) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b sortByFnIterations) Less(i, j int) bool { return b[i].FnIterations < b[j].FnIterations }
 
 var (
-	byWhitespace = regexp.MustCompile(`\s+`)
-	byRuns       = regexp.MustCompile(`-\d+$`)
-	byIterations = regexp.MustCompile(`(?i:)(Benchmark_?)`)
+	regExByWhitespace = regexp.MustCompile(`\s+`)
+	regExByRuns       = regexp.MustCompile(`-\d+$`)
+	regExByIterations = regexp.MustCompile(`(?i:)(^Benchmark_?)`)
+	regExIsBenchmark  = regExByIterations
+	linePassed        = "PASS"
+	lineSkipped       = "SKIP"
+	lineFail          = "FAIL"
 )
 
 var (
-	lines  [][]byte
-	table  *termtables.Table
-	bench  *benchmark
-	timing string
+	lines           [][]byte
+	unparsableLines []string
+	table           *termtables.Table
+	bench           *benchmark
+	timing          string
 )
 
 func init() {
@@ -107,14 +111,17 @@ func newBenchmark(l [][]byte) *benchmark {
 func newResults(l [][]byte) *results {
 	benchMap := make(results)
 
-	for _, l := range l[1 : len(l)-1] {
-		bl := newResult(l)
-		if bl != nil {
-			if _, ok := benchMap[bl.Name]; !ok {
-				benchMap[bl.Name] = make([]*result, 0)
-			}
-			benchMap[bl.Name] = append(benchMap[bl.Name], bl)
+	for _, l := range l {
+		bl, err := newResult(l)
+		if err != nil {
+			unparsableLines = append(unparsableLines, err.Error())
+			continue
 		}
+		if _, ok := benchMap[bl.Name]; !ok {
+			benchMap[bl.Name] = make([]*result, 0)
+		}
+		benchMap[bl.Name] = append(benchMap[bl.Name], bl)
+
 	}
 
 	for _, r := range benchMap {
@@ -124,7 +131,7 @@ func newResults(l [][]byte) *results {
 	return &benchMap
 }
 
-func newResult(b []byte) *result {
+func newResult(b []byte) (*result, error) {
 	var (
 		name   string
 		fnIter int
@@ -136,9 +143,13 @@ func newResult(b []byte) *result {
 	)
 
 	s := string(b)
-	parts := byWhitespace.Split(s, -1)
-	nameRuns := byRuns.ReplaceAllString(parts[0], "")
-	nameIterations := byIterations.ReplaceAllString(nameRuns, "")
+	parts := regExByWhitespace.Split(s, -1)
+	if len(parts) < 4 || !regExIsBenchmark.MatchString(parts[0]) {
+		return nil, fmt.Errorf("%s", s)
+	}
+
+	nameRuns := regExByRuns.ReplaceAllString(parts[0], "")
+	nameIterations := regExByIterations.ReplaceAllString(nameRuns, "")
 	lastIndex := strings.LastIndex(nameIterations, "_")
 
 	if lastIndex > -1 {
@@ -147,12 +158,6 @@ func newResult(b []byte) *result {
 	} else {
 		name = nameIterations
 		fnIter = -1
-	}
-
-	//just print the line if it doesn't have the correct format
-	if len(parts) < 4 {
-		fmt.Println(s)
-		return nil
 	}
 
 	iter, err = strconv.Atoi(parts[1])
@@ -187,7 +192,7 @@ func newResult(b []byte) *result {
 		Speed:        speed,
 		Bps:          bps,
 		Aps:          aps,
-	}
+	}, nil
 }
 
 func newBenchmarkInfo(r *results) *benchmarkInfo {
@@ -250,28 +255,27 @@ func updateSpeedVals(r *results, f float64) {
 }
 
 func footer() string {
+	var footer []byte
 
-	lastLine := bytes.Replace(
-		bytes.TrimSpace(lines[len(lines)-1]),
-		[]byte{9},
-		[]byte{32, 32, 32, 32, 32},
-		-1,
-	)
-	footer := make([]byte, 0, len(lastLine)*2+1)
+	footer = append(footer, []byte{10}...)
+	footer = append(footer, []byte((bold("Summary:"))+"\n")...)
+	footer = append(footer, []byte((bold("+------+"))+"\n")...)
 
-	footer = append(
-		footer,
-		lastLine...,
-	)
-
-	footer = append(footer, byte(10))
-	footer = append(footer, byte(43))
-	for i := 0; i < len(lastLine)-2; i++ {
-		footer = append(footer, byte(45))
+	for _, line := range unparsableLines {
+		tmp := strings.TrimSpace(line)
+		switch {
+		case tmp == linePassed:
+			footer = append(footer, []byte(green(bold(tmp))+"\n")...)
+		case tmp == lineSkipped:
+			footer = append(footer, []byte(gray(bold(tmp))+"\n")...)
+		case tmp == lineFail:
+			footer = append(footer, []byte(red(bold(tmp))+"\n")...)
+		default:
+			footer = append(footer, []byte(tmp+"\n")...)
+		}
 	}
-	footer = append(footer, byte(43))
 
-	return bold(string(footer))
+	return string(footer)
 }
 
 func addTableHeader(t *termtables.Table) {
@@ -412,4 +416,16 @@ func loading(q chan bool) {
 
 func bold(s string) string {
 	return fmt.Sprintf("\033[1m%s\033[0m", s)
+}
+
+func green(s string) string {
+	return fmt.Sprintf("\033[32m%s\033[0m", s)
+}
+
+func red(s string) string {
+	return fmt.Sprintf("\033[31m%s\033[0m", s)
+}
+
+func gray(s string) string {
+	return fmt.Sprintf("\033[90m%s\033[0m", s)
 }
