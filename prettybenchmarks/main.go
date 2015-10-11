@@ -88,6 +88,10 @@ func Main() {
 	}
 	close(quit)
 
+	if len(lines) == 0 {
+		os.Exit(0)
+	}
+
 	bench = newBenchmark(lines)
 
 	table = termtables.CreateTable()
