@@ -25,7 +25,9 @@ Example:
 ## Screenshots
 
 **Before**
+
 ![Before](https://raw.githubusercontent.com/wiki/florianorben/prettybenchmarks/before.png "Before")
 
 **After**
+
 ![After](https://raw.githubusercontent.com/wiki/florianorben/prettybenchmarks/after.png "After")
