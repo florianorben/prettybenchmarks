@@ -33,3 +33,6 @@ Example:
 **After**
 
 ![After](https://raw.githubusercontent.com/wiki/florianorben/prettybenchmarks/after.png "After")
+
+## Misc
+Shoutout to [panicparse](https://github.com/maruel/panicparse) for giving me some inspiration
