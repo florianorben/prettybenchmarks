@@ -2,6 +2,9 @@
 
 Prettybenchmarks formats your go benchmarks into nice looking sorted tables
 
+## Installation
+    go get github.com/florianorben/prettybenchmarks/cmd/pb
+
 ## Usage
 Pipe go bench results into "pb"
 
@@ -23,7 +26,6 @@ Example:
 - Prints a table ;)
 
 ## Screenshots
-
 **Before**
 
 ![Before](https://raw.githubusercontent.com/wiki/florianorben/prettybenchmarks/before.png "Before")
