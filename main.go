@@ -31,7 +31,6 @@ var (
 )
 
 type (
-	Foo       struct{}
 	benchmark struct {
 		info    *benchmarkInfo
 		results *results
