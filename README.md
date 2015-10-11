@@ -36,3 +36,7 @@ Example:
 
 ## Misc
 Shoutout to [panicparse](https://github.com/maruel/panicparse) for giving me some inspiration
+
+---
+
+[![Build Status](https://travis-ci.org/florianorben/prettybenchmarks.svg?branch=master)](https://travis-ci.org/florianorben/prettybenchmarks)
