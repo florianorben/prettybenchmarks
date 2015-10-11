@@ -4,9 +4,17 @@ Prettybenchmarks formats your go benchmarks into nice looking sorted tables
 
 ## Usage
 Pipe go bench results into "pb"
+
 Works with and without -benchmem flag
 
-    go test -bench [-benchmem] | pb
+If you provide a time interval (either *ns*, *µs* (or *us*), *ms*, *s*), each benchmark's runtime will be converted to that interval. If left blank, a suitable value will automatically be chosen
+
+
+    go test -bench=YOUR_PKG [-benchmem] | pb [timeinterval]
+
+Example:
+
+    go test -bench=. -benchmem | pb ms
 
 ## Features
 - Removes clutter in benchmark's names (e.g. Benchmark_, -8 etc.)

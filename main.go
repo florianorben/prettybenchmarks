@@ -11,6 +11,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -58,10 +59,15 @@ func (b sortByFnIterations) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b sortByFnIterations) Less(i, j int) bool { return b[i].FnIterations < b[j].FnIterations }
 
 var (
-	lines [][]byte
-	table *termtables.Table
-	bench *benchmark
+	lines  [][]byte
+	table  *termtables.Table
+	bench  *benchmark
+	timing string
 )
+
+func init() {
+	setTiming()
+}
 
 func main() {
 
@@ -191,9 +197,7 @@ func newBenchmarkInfo(r *results) *benchmarkInfo {
 		slowest         float64
 		hasFnIterations bool
 		benchmemUsed    bool
-		suggestedTiming string
 	)
-	suggestedTiming = "ns"
 
 	for _, bl := range *r {
 		for _, l := range bl {
@@ -212,21 +216,31 @@ func newBenchmarkInfo(r *results) *benchmarkInfo {
 		}
 	}
 
-	switch {
-	case slowest <= 1e3:
-		suggestedTiming = "ns"
-	case slowest > 1e3 && slowest <= 1e6:
-		suggestedTiming = "µs"
+	if timing == "" {
+		switch {
+		case slowest <= 1e3:
+			timing = "ns"
+		case slowest > 1e3 && slowest <= 1e6:
+			timing = "µs"
+		case slowest > 1e6 && slowest <= 1e9:
+			timing = "ms"
+		case slowest > 1e9:
+			timing = "s"
+		}
+	}
+
+	switch timing {
+	case "ns":
+		//ns is default, dont't do anything
+	case "µs":
 		updateSpeedVals(r, float64(1e3))
-	case slowest > 1e6 && slowest <= 1e9:
-		suggestedTiming = "ms"
+	case "ms":
 		updateSpeedVals(r, float64(1e6))
-	case slowest > 1e9:
-		suggestedTiming = "s"
+	case "s":
 		updateSpeedVals(r, float64(1e9))
 	}
 
-	return &benchmarkInfo{hasFnIterations, benchmemUsed, suggestedTiming}
+	return &benchmarkInfo{hasFnIterations, benchmemUsed, timing}
 }
 
 func updateSpeedVals(r *results, f float64) {
@@ -334,6 +348,20 @@ func addTableBody(t *termtables.Table) {
 	t.SetAlign(termtables.AlignRight, 4)
 	t.SetAlign(termtables.AlignRight, 5)
 	t.SetAlign(termtables.AlignRight, 6)
+}
+
+func setTiming() {
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) > 0 {
+		if lowerArg := strings.ToLower(args[0]); lowerArg == "ns" || lowerArg == "us" || lowerArg == "µs" || lowerArg == "ms" || lowerArg == "s" {
+			if lowerArg == "us" {
+				lowerArg = "µs"
+			}
+			timing = lowerArg
+		}
+	}
 }
 
 func loading(q chan bool) {
