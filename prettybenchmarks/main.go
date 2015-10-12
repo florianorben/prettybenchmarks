@@ -27,6 +27,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/apcera/termtables"
@@ -220,40 +221,25 @@ func newResult(b []byte) (*result, error) {
 
 func newBenchmarkInfo(r *results) *benchmarkInfo {
 	var (
-		slowest         float64
-		hasFnIterations bool
-		benchmemUsed    bool
+		hasFnIter    bool
+		benchmemUsed bool
+		wg           sync.WaitGroup
 	)
 
-	for _, bl := range *r {
-		for _, l := range bl {
-
-			if l.FnIterations > -1 {
-				hasFnIterations = true
-			}
-
-			if l.Aps > -1 && l.Bps > -1 {
-				benchmemUsed = true
-			}
-
-			if slowest < l.Speed {
-				slowest = l.Speed
-			}
-		}
-	}
-
-	if timing == "" {
-		switch {
-		case slowest <= 1e3:
-			timing = "ns"
-		case slowest > 1e3 && slowest <= 1e6:
-			timing = "µs"
-		case slowest > 1e6 && slowest <= 1e9:
-			timing = "ms"
-		case slowest > 1e9:
-			timing = "s"
-		}
-	}
+	wg.Add(3)
+	go func(r *results) {
+		timing = getSuggestedTiming(r)
+		wg.Done()
+	}(r)
+	go func(r *results) {
+		hasFnIter = hasFnIterations(r)
+		wg.Done()
+	}(r)
+	go func(r *results) {
+		benchmemUsed = isBenchmem(r)
+		wg.Done()
+	}(r)
+	wg.Wait()
 
 	switch timing {
 	case "ns":
@@ -266,7 +252,67 @@ func newBenchmarkInfo(r *results) *benchmarkInfo {
 		updateSpeedVals(r, float64(1e9))
 	}
 
-	return &benchmarkInfo{hasFnIterations, benchmemUsed, timing}
+	return &benchmarkInfo{hasFnIter, benchmemUsed, timing}
+}
+
+func getSuggestedTiming(r *results) string {
+	var (
+		slowest         float64
+		suggestedTiming string
+	)
+
+	for _, bl := range *r {
+		for _, l := range bl {
+			if slowest < l.Speed {
+				slowest = l.Speed
+			}
+		}
+	}
+
+	if timing == "" {
+		switch {
+		case slowest <= 1e3:
+			suggestedTiming = "ns"
+		case slowest > 1e3 && slowest <= 1e6:
+			suggestedTiming = "µs"
+		case slowest > 1e6 && slowest <= 1e9:
+			suggestedTiming = "ms"
+		case slowest > 1e9:
+			suggestedTiming = "s"
+		}
+	} else {
+		suggestedTiming = timing
+	}
+
+	return suggestedTiming
+}
+
+func isBenchmem(r *results) bool {
+	var benchmemUsed bool
+
+	for _, bl := range *r {
+		for _, l := range bl {
+			if l.Aps > -1 && l.Bps > -1 {
+				benchmemUsed = true
+			}
+		}
+	}
+
+	return benchmemUsed
+}
+
+func hasFnIterations(r *results) bool {
+	var hasFnIterations bool
+
+	for _, bl := range *r {
+		for _, l := range bl {
+			if l.FnIterations > -1 {
+				hasFnIterations = true
+			}
+		}
+	}
+
+	return hasFnIterations
 }
 
 func updateSpeedVals(r *results, f float64) {

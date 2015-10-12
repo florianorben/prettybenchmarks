@@ -6,10 +6,13 @@ import (
 )
 
 var tests = []struct {
-	input        [][]byte
-	expected     *results
-	expectedInfo *benchmarkInfo
-	extraLines   []string
+	input           [][]byte
+	expected        *results
+	expectedInfo    *benchmarkInfo
+	extraLines      []string
+	suggestedTiming string
+	isBenchmem      bool
+	hasFnIterations bool
 }{
 	{
 		[][]byte{
@@ -51,6 +54,9 @@ var tests = []struct {
 			"PASS\n",
 			"ok  	github.com/foobar/baz	11.164s\n",
 		},
+		"µs",
+		true,
+		true,
 	},
 	{
 		[][]byte{
@@ -82,6 +88,9 @@ var tests = []struct {
 			"fail  	github.com/foobar/baz	11.164s\n",
 			"??  	github.com/foobar/baz	11.164s\n",
 		},
+		"µs",
+		true,
+		false,
 	},
 
 	{
@@ -124,6 +133,9 @@ var tests = []struct {
 			"PASS\n",
 			"ok  	github.com/foobar/baz	22222.164s\n",
 		},
+		"µs",
+		false,
+		true,
 	},
 	{
 		[][]byte{
@@ -155,6 +167,9 @@ var tests = []struct {
 			"fail  	github.com/foobar/baz	11.164s\n",
 			"?foo?  	github.com/foobar/baz	11.164s\n",
 		},
+		"µs",
+		false,
+		false,
 	},
 }
 
@@ -181,7 +196,7 @@ func Test_benchInfo(t *testing.T) {
 
 func Test_unparsableLines(t *testing.T) {
 	for _, tt := range tests {
-		actual := make([]string, 0)
+		var actual []string
 		for _, line := range tt.input {
 			_, err := newResult(line)
 			if err != nil {
@@ -196,12 +211,39 @@ func Test_unparsableLines(t *testing.T) {
 	}
 }
 
+func Test_getSuggestedTiming(t *testing.T) {
+	for _, tt := range tests {
+		actual := getSuggestedTiming(tt.expected)
+		if !reflect.DeepEqual(actual, tt.suggestedTiming) {
+			t.Errorf("Suggesting time for input %s: expected %#v, actual %#v\n", tt.input, tt.suggestedTiming, actual)
+		}
+	}
+}
+
+func Test_isBenchmem(t *testing.T) {
+	for _, tt := range tests {
+		actual := isBenchmem(tt.expected)
+		if !reflect.DeepEqual(actual, tt.isBenchmem) {
+			t.Errorf("Getting info if benchmem is used for input %s: expected %#v, actual %#v\n", tt.input, tt.isBenchmem, actual)
+		}
+	}
+}
+
+func Test_hasFnIterations(t *testing.T) {
+	for _, tt := range tests {
+		actual := hasFnIterations(tt.expected)
+		if !reflect.DeepEqual(actual, tt.hasFnIterations) {
+			t.Errorf("Getting info if fnIterations used for input %s: expected %#v, actual %#v\n", tt.input, tt.hasFnIterations, actual)
+		}
+	}
+}
+
 func Test_bold(t *testing.T) {
 	s := "foo"
 	expected := "\033[1mfoo\033[0m"
 	actual := bold(s)
 	if expected != actual {
-		t.Errorf("Formatting bold string %: expected %v, actual %v", s, expected, actual)
+		t.Errorf("Formatting bold string %s: expected %v, actual %v", s, expected, actual)
 	}
 }
 func Test_green(t *testing.T) {
@@ -209,7 +251,7 @@ func Test_green(t *testing.T) {
 	expected := "\033[32mfoo\033[0m"
 	actual := green(s)
 	if expected != actual {
-		t.Errorf("Formatting green string %: expected %v, actual %v", s, expected, actual)
+		t.Errorf("Formatting green string %s: expected %v, actual %v", s, expected, actual)
 	}
 }
 func Test_red(t *testing.T) {
@@ -217,7 +259,7 @@ func Test_red(t *testing.T) {
 	expected := "\033[31mfoo\033[0m"
 	actual := red(s)
 	if expected != actual {
-		t.Errorf("Formatting red string %: expected %v, actual %v", s, expected, actual)
+		t.Errorf("Formatting red string %s: expected %v, actual %v", s, expected, actual)
 	}
 }
 func Test_gray(t *testing.T) {
