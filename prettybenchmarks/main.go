@@ -215,7 +215,7 @@ func newResult(b []byte) (*result, error) {
 			aps = -1
 		}
 	} else {
-		//without benchmem
+		// without benchmem
 		bps = -1
 		aps = -1
 	}
