@@ -56,7 +56,7 @@ var renderFloatPrecisionRounders = [10]float64{
 	0.0000000005,
 }
 
-//RenderInteger formats a given integer n according to the provided format
+//RenderFloat formats a given integer n according to the provided format
 //Examples of format strings for given n = 12345.6789:
 //    "#,###.##" => "12,345.67"
 //    "#,###." => "12,345"
