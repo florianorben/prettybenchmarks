@@ -364,6 +364,7 @@ func footer() string {
 
 func addTableHeader(t *termtables.Table) {
 	var lenLongestName int
+
 	for name := range *bench.results {
 		if tmpLen := len(name); tmpLen > lenLongestName {
 			lenLongestName = tmpLen
@@ -374,6 +375,7 @@ func addTableHeader(t *termtables.Table) {
 	// padding of longest name + len("name") + 1 padding right
 	nameCol := make([]byte, 0, lenLongestName+4+1)
 	nameCol = append(nameCol, []byte("Name")...)
+
 	for i := 0; i < lenLongestName; i++ {
 		nameCol = append(nameCol, byte(32))
 	}
@@ -461,6 +463,7 @@ func addTableBody(t *termtables.Table) {
 		}
 
 		i--
+
 		if i > 0 {
 			t.AddSeparator()
 		}
@@ -469,12 +472,23 @@ func addTableBody(t *termtables.Table) {
 	t.SetAlign(termtables.AlignLeft, 1)
 }
 
+//StringsContains checks if a string slice contains search element
+func StringsContains(elements []string, needle string) bool {
+	for _, i := range elements {
+		if i == needle {
+			return true
+		}
+	}
+
+	return false
+}
+
 func setTiming() {
 	flag.Parse()
 	args := flag.Args()
 
 	if len(args) > 0 {
-		if lowerArg := strings.ToLower(args[0]); lowerArg == "ns" || lowerArg == "us" || lowerArg == "µs" || lowerArg == "ms" || lowerArg == "s" {
+		if lowerArg := strings.ToLower(args[0]); StringsContains([]string{"ns", "us", "µs", "ms", "s"}, lowerArg) {
 			if lowerArg == "us" {
 				lowerArg = "µs"
 			}
@@ -498,6 +512,7 @@ func loading(q chan bool) {
 			} else {
 				current++
 			}
+
 		case <-q:
 			break
 		}
