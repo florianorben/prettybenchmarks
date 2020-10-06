@@ -112,7 +112,7 @@ func Main() {
 	close(quit)
 
 	if len(lines) == 0 {
-		os.Exit(0)
+		return
 	}
 
 	bench = newBenchmark(lines)
