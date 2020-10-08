@@ -2,17 +2,17 @@
 // Use of this source code is governed under the Apache License, Version 2.0
 // that can be found in the LICENSE file.
 
-//Package prettybenchmarks formats your go benchmarks into nice looking sorted tables
+// Package prettybenchmarks formats your go benchmarks into nice looking sorted tables
 //
-//Prettybenchmarks
+// Prettybenchmarks
 //
-//Works with and without -benchmem flag
+// Works with and without -benchmem flag
 //
-//If you provide a time interval (either ns, µs (or us), ms, s), each benchmark's runtime will be
-//converted to that interval. If left blank, a suitable value will automatically be chosen
+// If you provide a time interval (either ns, µs (or us), ms, s), each benchmark's runtime will be
+// converted to that interval. If left blank, a suitable value will automatically be chosen
 //
 //    go test -bench=YOUR_PKG [-benchmem] | pb [timeinterval]
-//Example
+// Example
 //    go test -bench=. -benchmem | pb ms
 //
 package prettybenchmarks
@@ -88,28 +88,31 @@ func init() {
 	setTiming()
 }
 
-//Main is the entry point to parse benchmarks
-//not intended for use in libraries, but has to be exported to ensure the tool can be called via 'pb'
+// Main is the entry point to parse benchmarks
+// not intended for use in libraries, but has to be exported to ensure the tool can be called via 'pb'
 func Main() {
-
 	reader := bufio.NewReader(os.Stdin)
 	quit := make(chan bool)
+
 	go loading(quit)
 
 	for {
 		text, err := reader.ReadBytes('\n')
+
 		if err != nil {
 			if err != io.EOF {
 				panic(err)
 			}
 			break
 		}
+
 		lines = append(lines, text)
 	}
+
 	close(quit)
 
 	if len(lines) == 0 {
-		os.Exit(0)
+		return
 	}
 
 	bench = newBenchmark(lines)
@@ -126,6 +129,7 @@ func Main() {
 
 func newBenchmark(l [][]byte) *benchmark {
 	results := newResults(l)
+
 	return &benchmark{
 		info:    newBenchmarkInfo(results),
 		results: results,
@@ -137,15 +141,17 @@ func newResults(l [][]byte) *results {
 
 	for _, l := range l {
 		bl, err := newResult(l)
+
 		if err != nil {
 			unparsableLines = append(unparsableLines, err.Error())
 			continue
 		}
+
 		if _, ok := benchMap[bl.Name]; !ok {
 			benchMap[bl.Name] = make([]*result, 0)
 		}
-		benchMap[bl.Name] = append(benchMap[bl.Name], bl)
 
+		benchMap[bl.Name] = append(benchMap[bl.Name], bl)
 	}
 
 	for _, r := range benchMap {
@@ -168,6 +174,7 @@ func newResult(b []byte) (*result, error) {
 
 	s := string(b)
 	parts := regExByWhitespace.Split(s, -1)
+
 	if len(parts) < 4 || !regExIsBenchmark.MatchString(parts[0]) {
 		return nil, fmt.Errorf("%s", s)
 	}
@@ -185,26 +192,30 @@ func newResult(b []byte) (*result, error) {
 	}
 
 	iter, err = strconv.Atoi(parts[1])
+
 	if err != nil {
 		iter = -1
 	}
+
 	speed, err = strconv.ParseFloat(parts[2], 64)
+
 	if err != nil {
 		speed = -1
 	}
 
 	if len(parts) > 5 {
 		bps, err = strconv.Atoi(parts[4])
+
 		if err != nil {
 			bps = -1
 		}
 		aps, err = strconv.Atoi(parts[6])
+
 		if err != nil {
 			aps = -1
 		}
 	} else {
-
-		//without benchmem
+		// without benchmem
 		bps = -1
 		aps = -1
 	}
@@ -227,23 +238,27 @@ func newBenchmarkInfo(r *results) *benchmarkInfo {
 	)
 
 	wg.Add(3)
+
 	go func(r *results) {
 		timing = getSuggestedTiming(r)
 		wg.Done()
 	}(r)
+
 	go func(r *results) {
 		hasFnIter = hasFnIterations(r)
 		wg.Done()
 	}(r)
+
 	go func(r *results) {
 		benchmemUsed = isBenchmem(r)
 		wg.Done()
 	}(r)
+
 	wg.Wait()
 
 	switch timing {
 	case "ns":
-		//ns is default, dont't do anything
+		// ns is default, dont't do anything
 	case "µs":
 		updateSpeedVals(r, float64(1e3))
 	case "ms":
@@ -349,6 +364,7 @@ func footer() string {
 
 func addTableHeader(t *termtables.Table) {
 	var lenLongestName int
+
 	for name := range *bench.results {
 		if tmpLen := len(name); tmpLen > lenLongestName {
 			lenLongestName = tmpLen
@@ -359,6 +375,7 @@ func addTableHeader(t *termtables.Table) {
 	// padding of longest name + len("name") + 1 padding right
 	nameCol := make([]byte, 0, lenLongestName+4+1)
 	nameCol = append(nameCol, []byte("Name")...)
+
 	for i := 0; i < lenLongestName; i++ {
 		nameCol = append(nameCol, byte(32))
 	}
@@ -380,15 +397,18 @@ func addTableHeader(t *termtables.Table) {
 
 func addTableBody(t *termtables.Table) {
 	floatFmt := fmtFloat
+
 	if bench.info.suggestedTiming == "ns" {
 		floatFmt = fmtFloatNS
 	}
 
 	i := len(*bench.results)
 	sorted := make([]string, 0, i)
+
 	for name := range *bench.results {
 		sorted = append(sorted, name)
 	}
+
 	sort.Sort(sort.StringSlice(sorted))
 
 	for _, benchName := range sorted {
@@ -396,6 +416,7 @@ func addTableBody(t *termtables.Table) {
 
 		for j, b := range results {
 			var name string
+
 			if j == 0 {
 				name = bold(b.Name)
 			}
@@ -442,6 +463,7 @@ func addTableBody(t *termtables.Table) {
 		}
 
 		i--
+
 		if i > 0 {
 			t.AddSeparator()
 		}
@@ -450,15 +472,27 @@ func addTableBody(t *termtables.Table) {
 	t.SetAlign(termtables.AlignLeft, 1)
 }
 
+//StringsContains checks if a string slice contains search element
+func StringsContains(elements []string, needle string) bool {
+	for _, i := range elements {
+		if i == needle {
+			return true
+		}
+	}
+
+	return false
+}
+
 func setTiming() {
 	flag.Parse()
 	args := flag.Args()
 
 	if len(args) > 0 {
-		if lowerArg := strings.ToLower(args[0]); lowerArg == "ns" || lowerArg == "us" || lowerArg == "µs" || lowerArg == "ms" || lowerArg == "s" {
+		if lowerArg := strings.ToLower(args[0]); StringsContains([]string{"ns", "us", "µs", "ms", "s"}, lowerArg) {
 			if lowerArg == "us" {
 				lowerArg = "µs"
 			}
+
 			timing = lowerArg
 		}
 	}
@@ -472,11 +506,13 @@ func loading(q chan bool) {
 		select {
 		case <-time.Tick(150 * time.Millisecond):
 			fmt.Printf("\r%s", states[current])
+
 			if current == len(states)-1 {
 				current = 0
 			} else {
 				current++
 			}
+
 		case <-q:
 			break
 		}
